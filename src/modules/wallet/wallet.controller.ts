@@ -1,34 +1,46 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { WalletService } from './wallet.service';
-import { CreateWalletDto } from './dto/create-wallet.dto';
-import { UpdateWalletDto } from './dto/update-wallet.dto';
+import {
+  Controller,
+  Post,
+  Get,
+  Body,
+  Param,
+  Req,
+  HttpCode,
+  UseGuards,
+} from "@nestjs/common";
+import type { Request } from "express";
+import { WalletService } from "./wallet.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { User } from "../auth/entities/auth.entity";
 
-@Controller('wallet')
+@Controller("wallet")
 export class WalletController {
   constructor(private readonly walletService: WalletService) {}
 
-  @Post()
-  create(@Body() createWalletDto: CreateWalletDto) {
-    return this.walletService.create(createWalletDto);
+  @Post("deposit")
+  @UseGuards(JwtAuthGuard)
+  async deposit(@CurrentUser() user: User, @Body() body: { amount: number }) {
+    return this.walletService.initiateDeposit(user.id, body.amount);
   }
 
-  @Get()
-  findAll() {
-    return this.walletService.findAll();
+  @Post("paystack/webhook")
+  @HttpCode(200)
+  async webhook(@Req() req: Request) {
+    const signature = req.headers["x-paystack-signature"] as string;
+
+    try {
+      return await this.walletService.handleWebhook(req.body, signature);
+    } catch (error) {
+      console.error("Webhook error:", error);
+      //return 200 to stop Paystack retries
+      return { status: true };
+    }
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.walletService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateWalletDto: UpdateWalletDto) {
-    return this.walletService.update(+id, updateWalletDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.walletService.remove(+id);
+  @Get("deposit/:reference/status")
+  @UseGuards(JwtAuthGuard)
+  async getDepositStatus(@Param("reference") reference: string) {
+    return this.walletService.getDepositStatus(reference);
   }
 }
