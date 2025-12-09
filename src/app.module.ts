@@ -1,25 +1,14 @@
 import { Module } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { ConfigModule, ConfigService } from "@nestjs/config";
-import { BullModule } from "@nestjs/bullmq";
+import { AuthModule } from "./modules/auth/auth.module";
+import { ApiKeysModule } from "./modules/api-keys/api-keys.module";
+import { WalletModule } from "./modules/wallet/wallet.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-    }),
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
-        connection: {
-          host: configService.get<string>("REDIS_HOST", "localhost"),
-          port: configService.get<number>("REDIS_PORT", 6379),
-        },
-      }),
-      inject: [ConfigService],
-    }),
-    BullModule.registerQueue({
-      name: "document-analysis",
     }),
     TypeOrmModule.forRootAsync({
       imports: [ConfigModule],
@@ -45,6 +34,9 @@ import { BullModule } from "@nestjs/bullmq";
       },
       inject: [ConfigService],
     }),
+    AuthModule,
+    ApiKeysModule,
+    WalletModule,
   ],
 })
 export class AppModule {}
