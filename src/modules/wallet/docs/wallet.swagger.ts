@@ -6,7 +6,7 @@ import {
   ApiBearerAuth,
   ApiQuery,
   ApiParam,
-  ApiExcludeEndpoint,
+  // ApiExcludeEndpoint,
   ApiSecurity,
 } from "@nestjs/swagger";
 
@@ -27,8 +27,8 @@ export const WalletDocs = {
           properties: {
             amount: {
               type: "number",
-              example: 5000,
-              description: "Amount to deposit in Naira",
+              example: 500000,
+              description: "Amount to deposit in Kobo (e.g., 500000 = ₦5000)",
               minimum: 1,
             },
           },
@@ -82,7 +82,7 @@ export const WalletDocs = {
       ApiOperation({
         summary: "Transfer Funds",
         description:
-          "Transfer money from your wallet to another user's wallet. Atomic operation - both debit and credit succeed or both fail. Requires transfer permission.",
+          "Transfer money from your wallet to another user's wallet. Requires transfer permission.",
       }),
       ApiBearerAuth("JWT"),
       ApiSecurity("API-KEY"),
@@ -99,8 +99,8 @@ export const WalletDocs = {
             },
             amount: {
               type: "number",
-              example: 3000,
-              description: "Amount to transfer in Naira",
+              example: 300000,
+              description: "Amount to transfer in Kobo (e.g., 300000 = ₦3000)",
               minimum: 1,
             },
           },
@@ -169,8 +169,9 @@ export const WalletDocs = {
           properties: {
             balance: {
               type: "number",
-              example: 15000.5,
-              description: "Current wallet balance in Naira",
+              example: 1500050,
+              description:
+                "Current wallet balance in Kobo (e.g., 1500050 = ₦15000.50)",
             },
           },
         },
@@ -228,9 +229,9 @@ export const WalletDocs = {
               },
               amount: {
                 type: "number",
-                example: 5000,
+                example: 500000,
                 description:
-                  "Positive for deposits/transfers in, negative for transfers out",
+                  "Amount in Kobo. Positive for deposits/transfers in, negative for transfers out (e.g., 500000 = ₦5000)",
               },
               status: {
                 type: "string",
@@ -272,8 +273,7 @@ export const WalletDocs = {
     applyDecorators(
       ApiOperation({
         summary: "Get Deposit Status",
-        description:
-          "Check the status of a deposit transaction by reference. Does not credit wallet - only webhook credits wallets.",
+        description: "Check the status of a deposit transaction by reference.",
       }),
       ApiBearerAuth("JWT"),
       ApiSecurity("API-KEY"),
@@ -302,7 +302,8 @@ export const WalletDocs = {
             },
             amount: {
               type: "number",
-              example: 5000,
+              example: 500000,
+              description: "Amount in Kobo (e.g., 500000 = ₦5000)",
             },
           },
         },
@@ -330,11 +331,10 @@ export const WalletDocs = {
 
   webhook: () =>
     applyDecorators(
-      ApiExcludeEndpoint(),
+      // ApiExcludeEndpoint(),
       ApiOperation({
         summary: "Paystack Webhook",
-        description:
-          "Internal endpoint for Paystack webhook callbacks. Not for public use.",
+        description: "Internal endpoint for Paystack webhook callbacks.",
       }),
     ),
 };

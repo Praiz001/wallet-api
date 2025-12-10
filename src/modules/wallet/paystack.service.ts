@@ -39,7 +39,8 @@ export class PaystackService {
         `${this.baseUrl}/transaction/initialize`,
         {
           email,
-          amount: amount * 100,
+          amount: amount, //in kobo
+          // amount: amount * 100, //naira
           reference,
           callback_url:
             callbackUrl || this.configService.get<string>("FRONTEND_URL"),

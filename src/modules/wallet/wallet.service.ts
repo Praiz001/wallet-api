@@ -98,7 +98,7 @@ export class WalletService {
 
     const reference = data.reference;
     const amountInKobo = data.amount;
-    const amountInNaira = amountInKobo / 100;
+    // const amountInNaira = amountInKobo / 100;
 
     // IDEMPOTENCY CHECK WITH LOCKING
     return await this.dataSource.transaction(async (manager) => {
@@ -133,7 +133,7 @@ export class WalletService {
         Wallet,
         { id: transaction.wallet_id },
         "balance",
-        amountInNaira,
+        amountInKobo,
       );
 
       console.log(`Successfully processed deposit: ${reference}`);
