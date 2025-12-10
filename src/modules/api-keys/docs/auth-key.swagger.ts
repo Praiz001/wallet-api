@@ -54,7 +54,7 @@ export const ApiKeysDocs = {
           properties: {
             api_key: {
               type: "string",
-              example: "sk_live_a1b2c3d4e5f6g7h8i9j0k1l2m3n4o5p6",
+              example: "wallet_api_key_new_example_9876543210fedcba",
               description: "The API key (shown only once)",
             },
             expires_at: {
@@ -101,7 +101,7 @@ export const ApiKeysDocs = {
           properties: {
             expired_key: {
               type: "string",
-              example: "sk_live_3ab9c4d0146f7c214055dbb2ad1e1d62",
+              example: "wallet_api_key_new_example_9876543210fedcba",
               description: "The expired API key string",
             },
             expiry: {
@@ -121,7 +121,7 @@ export const ApiKeysDocs = {
           properties: {
             api_key: {
               type: "string",
-              example: "sk_live_new_key_here",
+              example: "wallet_api_key_new_example_9876543210fedcba",
             },
             expires_at: {
               type: "string",
@@ -178,7 +178,7 @@ export const ApiKeysDocs = {
           properties: {
             api_key: {
               type: "string",
-              example: "sk_live_3ab9c4d0146f7c214055dbb2ad1e1d62",
+              example: "wallet_api_key_new_example_9876543210fedcba",
               description: "The API key string to revoke",
             },
           },
