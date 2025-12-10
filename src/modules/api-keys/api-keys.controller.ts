@@ -5,13 +5,17 @@ import { RolloverApiKeyDto } from "./dto/rollover-api-key.dto";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { CurrentUser } from "../../common/decorators/current-user.decorator";
 import { User } from "../auth/entities/auth.entity";
+import { ApiTags } from "@nestjs/swagger";
+import { ApiKeysDocs } from "./docs/auth-key.swagger";
 
+@ApiTags("API Keys")
 @Controller("keys")
 export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
   @Post("create")
   @UseGuards(JwtAuthGuard)
+  @ApiKeysDocs.create()
   async create(
     @CurrentUser() user: User,
     @Body() createApiKeyDto: CreateApiKeyDto,
@@ -21,6 +25,7 @@ export class ApiKeysController {
 
   @Post("rollover")
   @UseGuards(JwtAuthGuard)
+  @ApiKeysDocs.rollover()
   async rollover(
     @CurrentUser() user: User,
     @Body() rolloverApiKeyDto: RolloverApiKeyDto,
