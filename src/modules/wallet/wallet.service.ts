@@ -2,6 +2,7 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  InternalServerErrorException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource, MoreThanOrEqual } from "typeorm";
@@ -287,5 +288,46 @@ export class WalletService {
     });
 
     return transactions;
+  }
+  async createWalletForUser(userId: string): Promise<Wallet> {
+    // Generate unique wallet number with retry logic
+    let walletNumber: string;
+    let attempts = 0;
+    const maxAttempts = 10;
+
+    do {
+      walletNumber = this.generateWalletNumber();
+      const existing = await this.walletRepository.findOne({
+        where: { wallet_number: walletNumber },
+      });
+
+      if (!existing) {
+        break; // Found unique number
+      }
+
+      attempts++;
+      if (attempts >= maxAttempts) {
+        throw new InternalServerErrorException(
+          "Failed to generate unique wallet number",
+        );
+      }
+    } while (attempts < maxAttempts);
+
+    return this.walletRepository.save({
+      user_id: userId,
+      wallet_number: walletNumber,
+      balance: 0,
+    });
+  }
+
+  private generateWalletNumber(): string {
+    // Generate 13-digit wallet number
+    // Using timestamp + random for better uniqueness
+    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
+    const random = Math.floor(Math.random() * 1000000)
+      .toString()
+      .padStart(6, "0"); // 6 random digits
+    const combined = (timestamp + random).padStart(13, "0").slice(0, 13);
+    return combined;
   }
 }

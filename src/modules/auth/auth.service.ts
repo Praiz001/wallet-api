@@ -4,15 +4,15 @@ import { Repository } from "typeorm";
 import { JwtService } from "@nestjs/jwt";
 import { ConfigService } from "@nestjs/config";
 import { User } from "./entities/auth.entity";
-import { Wallet } from "../wallet/entities/wallet.entity";
+// import { Wallet } from "../wallet/entities/wallet.entity";
+import { WalletService } from "../wallet/wallet.service";
 
 @Injectable()
 export class AuthService {
   constructor(
     @InjectRepository(User)
     private userRepository: Repository<User>,
-    @InjectRepository(Wallet)
-    private walletRepository: Repository<Wallet>,
+    private walletService: WalletService,
     private jwtService: JwtService,
     private configService: ConfigService,
   ) {}
@@ -39,7 +39,7 @@ export class AuthService {
     });
 
     // Automatically create wallet for new user
-    await this.createWalletForUser(user.id);
+    await this.walletService.createWalletForUser(user.id);
 
     // Reload user with wallet
     const userWithWallet = await this.userRepository.findOne({
@@ -56,48 +56,6 @@ export class AuthService {
     return userWithWallet;
   }
 
-  private async createWalletForUser(userId: string): Promise<Wallet> {
-    // Generate unique wallet number with retry logic
-    let walletNumber: string;
-    let attempts = 0;
-    const maxAttempts = 10;
-
-    do {
-      walletNumber = this.generateWalletNumber();
-      const existing = await this.walletRepository.findOne({
-        where: { wallet_number: walletNumber },
-      });
-
-      if (!existing) {
-        break; // Found unique number
-      }
-
-      attempts++;
-      if (attempts >= maxAttempts) {
-        throw new InternalServerErrorException(
-          "Failed to generate unique wallet number",
-        );
-      }
-    } while (attempts < maxAttempts);
-
-    return this.walletRepository.save({
-      user_id: userId,
-      wallet_number: walletNumber,
-      balance: 0,
-    });
-  }
-
-  private generateWalletNumber(): string {
-    // Generate 13-digit wallet number
-    // Using timestamp + random for better uniqueness
-    const timestamp = Date.now().toString().slice(-6); // Last 6 digits of timestamp
-    const random = Math.floor(Math.random() * 1000000)
-      .toString()
-      .padStart(6, "0"); // 6 random digits
-    const combined = (timestamp + random).padStart(13, "0").slice(0, 13);
-    return combined;
-  }
-
   generateJWT(user: User): string {
     const payload = {
       userId: user.id,
@@ -107,7 +65,3 @@ export class AuthService {
     return this.jwtService.sign(payload);
   }
 }
-// {
-//       secret: this.configService.get<string>("JWT_SECRET")!,
-//       expiresIn: this.configService.get<string>("JWT_EXPIRES_IN", "7d"),
-//     }
