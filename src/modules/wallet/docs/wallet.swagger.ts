@@ -7,6 +7,7 @@ import {
   ApiQuery,
   ApiParam,
   ApiExcludeEndpoint,
+  ApiSecurity,
 } from "@nestjs/swagger";
 
 export const WalletDocs = {
@@ -18,6 +19,7 @@ export const WalletDocs = {
           "Initialize a Paystack payment transaction. Returns authorization URL for user to complete payment. Requires deposit permission.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiBody({
         schema: {
           type: "object",
@@ -83,6 +85,7 @@ export const WalletDocs = {
           "Transfer money from your wallet to another user's wallet. Atomic operation - both debit and credit succeed or both fail. Requires transfer permission.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiBody({
         schema: {
           type: "object",
@@ -157,6 +160,7 @@ export const WalletDocs = {
           "Get current balance of authenticated user's wallet. Requires read permission.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiResponse({
         status: 200,
         description: "Balance retrieved successfully",
@@ -193,6 +197,7 @@ export const WalletDocs = {
           "Get paginated transaction history for authenticated user's wallet. Includes deposits, transfers in, and transfers out.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiQuery({
         name: "limit",
         required: false,
@@ -271,6 +276,7 @@ export const WalletDocs = {
           "Check the status of a deposit transaction by reference. Does not credit wallet - only webhook credits wallets.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiParam({
         name: "reference",
         type: "string",

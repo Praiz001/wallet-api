@@ -26,6 +26,15 @@ async function bootstrap() {
       },
       "JWT",
     )
+    .addApiKey(
+      {
+        type: "apiKey",
+        in: "header",
+        name: "x-api-key",
+        description: "Enter API key for service-to-service authentication",
+      },
+      "API-KEY",
+    )
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup("docs", app, document);

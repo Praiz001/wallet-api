@@ -4,6 +4,7 @@ import {
   ApiResponse,
   ApiBody,
   ApiBearerAuth,
+  ApiSecurity,
 } from "@nestjs/swagger";
 
 export const ApiKeysDocs = {
@@ -15,6 +16,7 @@ export const ApiKeysDocs = {
           "Creates a new API key with specified permissions and expiry. Maximum 5 active keys per user. The API key is returned only once and cannot be retrieved later.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiBody({
         schema: {
           type: "object",
@@ -91,6 +93,7 @@ export const ApiKeysDocs = {
           "Creates a new API key using the same permissions as an expired key. The old key must be expired.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiBody({
         schema: {
           type: "object",
@@ -167,6 +170,7 @@ export const ApiKeysDocs = {
           "Revokes an active API key. Once revoked, the key can no longer be used for authentication. The key must belong to the authenticated user.",
       }),
       ApiBearerAuth("JWT"),
+      ApiSecurity("API-KEY"),
       ApiBody({
         schema: {
           type: "object",
