@@ -4,6 +4,8 @@ import { ConfigModule, ConfigService } from "@nestjs/config";
 import { AuthModule } from "./modules/auth/auth.module";
 import { ApiKeysModule } from "./modules/api-keys/api-keys.module";
 import { WalletModule } from "./modules/wallet/wallet.module";
+import { AppController } from "./app.controller";
+import { AppService } from "./app.service";
 
 @Module({
   imports: [
@@ -38,5 +40,7 @@ import { WalletModule } from "./modules/wallet/wallet.module";
     ApiKeysModule,
     WalletModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
