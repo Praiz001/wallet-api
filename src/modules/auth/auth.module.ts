@@ -1,4 +1,4 @@
-import { Module } from "@nestjs/common";
+import { Module, forwardRef } from "@nestjs/common";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { PassportModule } from "@nestjs/passport";
 import { JwtModule, JwtModuleOptions } from "@nestjs/jwt";
@@ -11,10 +11,11 @@ import { WalletModule } from "../wallet/wallet.module";
 import { GoogleStrategy } from "./strategies/google.strategy";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([User]),
-    WalletModule,
+    forwardRef(() => WalletModule),
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       imports: [ConfigModule],

@@ -1,34 +1,30 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
-import { ApiKeysService } from './api-keys.service';
-import { CreateApiKeyDto } from './dto/create-api-key.dto';
-import { UpdateApiKeyDto } from './dto/update-api-key.dto';
+import { Controller, Post, Body, UseGuards } from "@nestjs/common";
+import { ApiKeysService } from "./api-keys.service";
+import { CreateApiKeyDto } from "./dto/create-api-key.dto";
+import { RolloverApiKeyDto } from "./dto/rollover-api-key.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
+import { CurrentUser } from "../../common/decorators/current-user.decorator";
+import { User } from "../auth/entities/auth.entity";
 
-@Controller('api-keys')
+@Controller("keys")
 export class ApiKeysController {
   constructor(private readonly apiKeysService: ApiKeysService) {}
 
-  @Post()
-  create(@Body() createApiKeyDto: CreateApiKeyDto) {
-    return this.apiKeysService.create(createApiKeyDto);
+  @Post("create")
+  @UseGuards(JwtAuthGuard)
+  async create(
+    @CurrentUser() user: User,
+    @Body() createApiKeyDto: CreateApiKeyDto,
+  ) {
+    return this.apiKeysService.createApiKey(user.id, createApiKeyDto);
   }
 
-  @Get()
-  findAll() {
-    return this.apiKeysService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.apiKeysService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateApiKeyDto: UpdateApiKeyDto) {
-    return this.apiKeysService.update(+id, updateApiKeyDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.apiKeysService.remove(+id);
+  @Post("rollover")
+  @UseGuards(JwtAuthGuard)
+  async rollover(
+    @CurrentUser() user: User,
+    @Body() rolloverApiKeyDto: RolloverApiKeyDto,
+  ) {
+    return this.apiKeysService.rolloverKey(user.id, rolloverApiKeyDto);
   }
 }
