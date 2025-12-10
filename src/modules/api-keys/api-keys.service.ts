@@ -146,6 +146,55 @@ export class ApiKeysService {
 
     return null;
   }
+  async revokeKey(userId: string, rawKey: string) {
+    // Validate input
+    if (!rawKey || typeof rawKey !== "string") {
+      throw new BadRequestException("Invalid API key provided");
+    }
+
+    // Find key
+    const apiKeys = await this.apiKeyRepository.find({
+      where: {
+        user_id: userId,
+        revoked: false,
+      },
+    });
+
+    let keyToRevoke: ApiKey | null = null;
+
+    // find the matching key
+    for (const apiKey of apiKeys) {
+      // Skip if key_hash is null/undefined
+      if (!apiKey.key_hash) {
+        continue;
+      }
+
+      try {
+        const isMatch = await bcrypt.compare(rawKey, apiKey.key_hash);
+        if (isMatch) {
+          keyToRevoke = apiKey;
+          break;
+        }
+      } catch (error: unknown) {
+        console.error("Error comparing hashes:", error);
+        // Skip invalid hashes
+        continue;
+      }
+    }
+    if (!keyToRevoke) {
+      throw new NotFoundException("API key not found");
+    }
+
+    await this.apiKeyRepository.update(
+      { id: keyToRevoke.id },
+      { revoked: true },
+    );
+
+    return {
+      message: "API key revoked successfully",
+      revoked_at: new Date(),
+    };
+  }
 
   private parseExpiry(expiry: string): Date {
     const now = new Date();

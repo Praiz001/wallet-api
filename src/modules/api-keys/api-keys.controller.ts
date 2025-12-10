@@ -32,4 +32,11 @@ export class ApiKeysController {
   ) {
     return this.apiKeysService.rolloverKey(user.id, rolloverApiKeyDto);
   }
+
+  @Post("revoke")
+  @UseGuards(JwtAuthGuard)
+  @ApiKeysDocs.revoke()
+  async revoke(@CurrentUser() user: User, @Body() body: { api_key: string }) {
+    return this.apiKeysService.revokeKey(user.id, body.api_key);
+  }
 }

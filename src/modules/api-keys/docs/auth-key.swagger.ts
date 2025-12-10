@@ -158,4 +158,74 @@ export const ApiKeysDocs = {
         description: "Unauthorized - Invalid or missing JWT token",
       }),
     ),
+
+  revoke: () =>
+    applyDecorators(
+      ApiOperation({
+        summary: "Revoke API Key",
+        description:
+          "Revokes an active API key. Once revoked, the key can no longer be used for authentication. The key must belong to the authenticated user.",
+      }),
+      ApiBearerAuth("JWT"),
+      ApiBody({
+        schema: {
+          type: "object",
+          required: ["api_key"],
+          properties: {
+            api_key: {
+              type: "string",
+              example: "sk_live_3ab9c4d0146f7c214055dbb2ad1e1d62",
+              description: "The API key string to revoke",
+            },
+          },
+        },
+      }),
+      ApiResponse({
+        status: 200,
+        description: "API key revoked successfully",
+        schema: {
+          type: "object",
+          properties: {
+            message: {
+              type: "string",
+              example: "API key revoked successfully",
+            },
+            revoked_at: {
+              type: "string",
+              format: "date-time",
+              example: "2025-12-10T15:30:00Z",
+            },
+          },
+        },
+      }),
+      ApiResponse({
+        status: 400,
+        description: "Bad request - Invalid API key provided",
+        schema: {
+          type: "object",
+          properties: {
+            statusCode: { type: "number", example: 400 },
+            message: {
+              type: "string",
+              example: "Invalid API key provided",
+            },
+          },
+        },
+      }),
+      ApiResponse({
+        status: 404,
+        description: "API key not found",
+        schema: {
+          type: "object",
+          properties: {
+            statusCode: { type: "number", example: 404 },
+            message: { type: "string", example: "API key not found" },
+          },
+        },
+      }),
+      ApiResponse({
+        status: 401,
+        description: "Unauthorized - Invalid or missing JWT token",
+      }),
+    ),
 };
