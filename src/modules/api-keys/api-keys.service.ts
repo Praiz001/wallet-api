@@ -61,13 +61,38 @@ export class ApiKeysService {
   }
 
   async rolloverKey(userId: string, dto: RolloverApiKeyDto) {
+    // Validate input
+    if (!dto.expired_key || typeof dto.expired_key !== "string") {
+      throw new BadRequestException("Invalid expired_key provided");
+    }
     // Find expired key
-    const oldKey = await this.apiKeyRepository.findOne({
+    const apiKeys = await this.apiKeyRepository.find({
       where: {
-        id: dto.expired_key_id,
         user_id: userId,
+        revoked: false,
       },
     });
+
+    let oldKey: ApiKey | null = null;
+
+    // Check each key hash to find the matching one
+    for (const apiKey of apiKeys) {
+      // Skip if key_hash is null/undefined
+      if (!apiKey.key_hash) {
+        continue;
+      }
+      try {
+        const isMatch = await bcrypt.compare(dto.expired_key, apiKey.key_hash);
+        if (isMatch) {
+          oldKey = apiKey;
+          break;
+        }
+      } catch (error: unknown) {
+        console.error("Error comparing hashes:", error);
+        // Skip invalid hashes
+        continue;
+      }
+    }
 
     if (!oldKey) {
       throw new NotFoundException("API key not found");
@@ -90,7 +115,7 @@ export class ApiKeysService {
     rawKey: string,
     requiredPermissions: string[] = [],
   ): Promise<ApiKey | null> {
-    // Find all active API keys (not revoked, not expired)
+    // Find all active API keys (not revoked/expired)
     const apiKeys = await this.apiKeyRepository.find({
       where: {
         revoked: false,
