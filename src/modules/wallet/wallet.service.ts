@@ -4,7 +4,7 @@ import {
   NotFoundException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, DataSource } from "typeorm";
+import { Repository, DataSource, MoreThanOrEqual } from "typeorm";
 import { Wallet } from "./entities/wallet.entity";
 import {
   Transaction,
@@ -90,7 +90,7 @@ export class WalletService {
 
     const { event, data } = payload;
 
-    // Only process successful charges
+    // process successful charges
     if (event !== "charge.success" || data.status !== "success") {
       return { status: true };
     }
@@ -101,14 +101,14 @@ export class WalletService {
 
     // IDEMPOTENCY CHECK WITH LOCKING
     return await this.dataSource.transaction(async (manager) => {
-      // Find transaction with lock (must be inside transaction)
+      // Find transaction with lock
       const transaction = await manager.findOne(Transaction, {
         where: { reference },
         lock: { mode: "pessimistic_write" },
       });
 
       if (!transaction) {
-        // Unknown reference, log and ignore
+        // unknown reference
         console.log(`Unknown reference: ${reference}`);
         return { status: true };
       }
@@ -154,5 +154,138 @@ export class WalletService {
       status: transaction.status,
       amount: transaction.amount,
     };
+  }
+
+  async transferFunds(
+    senderUserId: string,
+    recipientWalletNumber: string,
+    amount: number,
+  ) {
+    // Validate amount
+    if (amount <= 0) {
+      throw new BadRequestException("Amount must be greater than 0");
+    }
+
+    // Find sender wallet
+    const senderWallet = await this.walletRepository.findOne({
+      where: { user_id: senderUserId },
+    });
+
+    if (!senderWallet) {
+      throw new NotFoundException("Sender wallet not found");
+    }
+
+    // Find recipient wallet
+    const recipientWallet = await this.walletRepository.findOne({
+      where: { wallet_number: recipientWalletNumber },
+    });
+
+    if (!recipientWallet) {
+      throw new NotFoundException("Recipient wallet not found");
+    }
+
+    // Prevent self-transfer
+    if (senderWallet.id === recipientWallet.id) {
+      throw new BadRequestException("Cannot transfer to yourself");
+    }
+
+    // check balance that is sufficient
+    if (senderWallet.balance < amount) {
+      throw new BadRequestException("Insufficient balance");
+    }
+
+    // ATOMIC TRANSACTION WITH RACE CONDITION PREVENTION
+    return await this.dataSource.transaction(async (manager) => {
+      // Deduct from sender WITH CONDITIONAL CHECK (prevents race condition)
+      const deductResult = await manager.decrement(
+        Wallet,
+        {
+          id: senderWallet.id,
+          balance: MoreThanOrEqual(amount),
+        },
+        "balance",
+        amount,
+      );
+
+      // If no rows affected, balance was insufficient (race condition detected)
+      if (deductResult.affected === 0) {
+        throw new BadRequestException(
+          "Insufficient balance (concurrent check)",
+        );
+      }
+
+      // Credit recipient
+      await manager.increment(
+        Wallet,
+        { id: recipientWallet.id },
+        "balance",
+        amount,
+      );
+      // Generate unique references
+      const timestamp = Date.now();
+      const random = crypto.randomBytes(4).toString("hex");
+
+      // Record transfer-out transaction
+      await manager.save(Transaction, {
+        wallet_id: senderWallet.id,
+        type: TransactionType.TRANSFER_OUT,
+        amount: -amount, //-ve for debit
+        status: TransactionStatus.SUCCESS,
+        reference: `TRF_OUT_${timestamp}_${random}`,
+        metadata: {
+          recipient_wallet_number: recipientWalletNumber,
+          recipient_wallet_id: recipientWallet.id,
+        },
+      });
+
+      // Record transfer-in transaction
+      await manager.save(Transaction, {
+        wallet_id: recipientWallet.id,
+        type: TransactionType.TRANSFER_IN,
+        amount, // +ve for deposit
+        status: TransactionStatus.SUCCESS,
+        reference: `TRF_IN_${timestamp}_${random}`,
+        metadata: {
+          sender_wallet_number: senderWallet.wallet_number,
+          sender_wallet_id: senderWallet.id,
+        },
+      });
+
+      return {
+        status: "success",
+        message: "Transfer completed",
+      };
+    });
+  }
+
+  async getBalance(userId: string) {
+    const wallet = await this.walletRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException("Wallet not found");
+    }
+
+    return { balance: parseFloat(wallet.balance.toString()) };
+  }
+
+  async getTransactions(userId: string, limit = 50, offset = 0) {
+    const wallet = await this.walletRepository.findOne({
+      where: { user_id: userId },
+    });
+
+    if (!wallet) {
+      throw new NotFoundException("Wallet not found");
+    }
+
+    const transactions = await this.transactionRepository.find({
+      where: { wallet_id: wallet.id },
+      order: { created_at: "DESC" },
+      take: limit,
+      skip: offset,
+    });
+
+    return transactions;
   }
 }

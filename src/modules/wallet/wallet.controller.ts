@@ -7,6 +7,7 @@ import {
   Req,
   HttpCode,
   UseGuards,
+  Query,
 } from "@nestjs/common";
 import type { Request } from "express";
 import { WalletService } from "./wallet.service";
@@ -22,6 +23,19 @@ export class WalletController {
   @UseGuards(JwtAuthGuard)
   async deposit(@CurrentUser() user: User, @Body() body: { amount: number }) {
     return this.walletService.initiateDeposit(user.id, body.amount);
+  }
+
+  @Post("transfer")
+  @UseGuards(JwtAuthGuard)
+  async transfer(
+    @CurrentUser() user: User,
+    @Body() body: { wallet_number: string; amount: number },
+  ) {
+    return this.walletService.transferFunds(
+      user.id,
+      body.wallet_number,
+      body.amount,
+    );
   }
 
   @Post("paystack/webhook")
@@ -42,5 +56,25 @@ export class WalletController {
   @UseGuards(JwtAuthGuard)
   async getDepositStatus(@Param("reference") reference: string) {
     return this.walletService.getDepositStatus(reference);
+  }
+
+  @Get("balance")
+  @UseGuards(JwtAuthGuard)
+  async getBalance(@CurrentUser() user: User) {
+    return this.walletService.getBalance(user.id);
+  }
+
+  @Get("transactions")
+  @UseGuards(JwtAuthGuard)
+  async getTransactions(
+    @CurrentUser() user: User,
+    @Query("limit") limit?: string,
+    @Query("offset") offset?: string,
+  ) {
+    return this.walletService.getTransactions(
+      user.id,
+      limit ? parseInt(limit) : 50,
+      offset ? parseInt(offset) : 0,
+    );
   }
 }
