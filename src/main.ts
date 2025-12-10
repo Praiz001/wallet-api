@@ -13,7 +13,7 @@ async function bootstrap() {
 
   const config = new DocumentBuilder()
     .setTitle("Wallet Service API")
-    .setDescription("Wall Service API")
+    .setDescription("Wallet Service API")
     .setVersion("1.0")
     .addBearerAuth(
       {

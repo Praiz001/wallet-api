@@ -31,7 +31,7 @@ import { AppService } from "./app.service";
           database: dbName,
           autoLoadEntities: true,
           synchronize: nodeEnv !== "production",
-          logging: nodeEnv === "development",
+          logging: nodeEnv !== "production" ? ["error", "warn"] : false,
         };
       },
       inject: [ConfigService],
