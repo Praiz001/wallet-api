@@ -90,55 +90,82 @@ export class WalletService {
     }
 
     const { event, data } = payload;
+    const reference = data.reference;
 
-    // process successful charges
-    if (event !== "charge.success" || data.status !== "success") {
-      return { status: true };
+    // Handle successful charges
+    if (event === "charge.success" && data.status === "success") {
+      const amountInKobo = data.amount;
+
+      // IDEMPOTENCY CHECK WITH LOCKING
+      return await this.dataSource.transaction(async (manager) => {
+        const transaction = await manager.findOne(Transaction, {
+          where: { reference },
+          lock: { mode: "pessimistic_write" },
+        });
+
+        if (!transaction) {
+          console.log(`Unknown reference: ${reference}`);
+          return { status: true };
+        }
+
+        if (transaction.status === TransactionStatus.SUCCESS) {
+          console.log(`Duplicate webhook for: ${reference}`);
+          return { status: true };
+        }
+        // UPDATE TRANSACTION AND WALLET ATOMICALLY
+        await manager.update(
+          Transaction,
+          { id: transaction.id },
+          { status: TransactionStatus.SUCCESS },
+        );
+
+        await manager.increment(
+          Wallet,
+          { id: transaction.wallet_id },
+          "balance",
+          amountInKobo,
+        );
+
+        console.log(`Successfully processed deposit: ${reference}`);
+        return { status: true };
+      });
     }
 
-    const reference = data.reference;
-    const amountInKobo = data.amount;
-    // const amountInNaira = amountInKobo / 100;
+    // Handle failed charges
+    if (event === "charge.success" && data.status !== "success") {
+      return await this.dataSource.transaction(async (manager) => {
+        const transaction = await manager.findOne(Transaction, {
+          where: { reference },
+          lock: { mode: "pessimistic_write" },
+        });
 
-    // IDEMPOTENCY CHECK WITH LOCKING
-    return await this.dataSource.transaction(async (manager) => {
-      // Find transaction with lock
-      const transaction = await manager.findOne(Transaction, {
-        where: { reference },
-        lock: { mode: "pessimistic_write" },
+        if (!transaction) {
+          console.log(`Unknown reference for failed charge: ${reference}`);
+          return { status: true };
+        }
+
+        if (
+          transaction.status === TransactionStatus.FAILED ||
+          transaction.status === TransactionStatus.SUCCESS
+        ) {
+          // Already processed
+          console.log(`Duplicate webhook for failed charge: ${reference}`);
+          return { status: true };
+        }
+        // Update transaction status to FAILED
+        await manager.update(
+          Transaction,
+          { id: transaction.id },
+          { status: TransactionStatus.FAILED },
+        );
+
+        console.log(`Marked deposit as failed: ${reference}`);
+        return { status: true };
       });
+    }
 
-      if (!transaction) {
-        // unknown reference
-        console.log(`Unknown reference: ${reference}`);
-        return { status: true };
-      }
-
-      if (transaction.status === TransactionStatus.SUCCESS) {
-        // Already processed, return success (idempotent)
-        console.log(`Duplicate webhook for: ${reference}`);
-        return { status: true };
-      }
-
-      // UPDATE TRANSACTION AND WALLET ATOMICALLY
-      // Update transaction status
-      await manager.update(
-        Transaction,
-        { id: transaction.id },
-        { status: TransactionStatus.SUCCESS },
-      );
-
-      // Credit wallet balance
-      await manager.increment(
-        Wallet,
-        { id: transaction.wallet_id },
-        "balance",
-        amountInKobo,
-      );
-
-      console.log(`Successfully processed deposit: ${reference}`);
-      return { status: true };
-    });
+    // Unknown event type
+    return { status: true };
   }
 
   async getDepositStatus(reference: string) {
