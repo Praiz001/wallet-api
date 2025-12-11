@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import { Controller, Get, Req, Res, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import type { Request, Response } from "express";
@@ -6,6 +5,7 @@ import { AuthService } from "./auth.service";
 import { User } from "./entities/auth.entity";
 import { ApiAuthDocs } from "./docs/auth.swagger";
 import { ApiTags } from "@nestjs/swagger";
+import { ConfigService } from "@nestjs/config";
 
 interface AuthenticatedRequest extends Request {
   user: User;
@@ -13,14 +13,29 @@ interface AuthenticatedRequest extends Request {
 @Controller("auth")
 @ApiTags("Authentication")
 export class AuthController {
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    private readonly configService: ConfigService,
+  ) {}
 
   @Get("google")
-  @UseGuards(AuthGuard("google"))
+  // @UseGuards(AuthGuard("google"))
   @ApiAuthDocs.googleAuth()
-  async googleAuth(@Req() req: Request) {
-    // Initiates Google OAuth flow
-    // Passport redirects to Google automatically
+  googleAuth() {
+    const clientId = this.configService.get<string>("GOOGLE_CLIENT_ID");
+    if (!clientId) {
+      throw new Error("GOOGLE_CLIENT_ID is not configured");
+    }
+    const callbackUrl =
+      this.configService.get<string>("GOOGLE_CALLBACK_URL") ||
+      "http://localhost:3000/auth/google/callback";
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${clientId}&redirect_uri=${encodeURIComponent(callbackUrl)}&response_type=code&scope=email profile&access_type=offline`;
+
+    return {
+      url: googleAuthUrl,
+      message: "Visit this URL in your browser to authenticate with Google",
+    };
   }
 
   @Get("google/callback")

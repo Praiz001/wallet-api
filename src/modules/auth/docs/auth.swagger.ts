@@ -8,11 +8,26 @@ export const ApiAuthDocs = {
       ApiTags("Authentication"),
       ApiOperation({
         summary: "Initiate Google OAuth",
-        description: `Redirects user to Google OAuth consent screen. User must complete authentication on Google.\n\n**Note:** This endpoint cannot be tested through Swagger UI due to OAuth redirect flow. Please test by visiting the URL directly in your browser: \`${getBaseUrl()}/auth/google\``,
+        description: `User must complete authentication on Google. Returns Google OAuth URL.`,
       }),
       ApiResponse({
-        status: 302,
-        description: "Redirects to Google OAuth",
+        status: 200,
+        description: "Google OAuth URL",
+        schema: {
+          type: "object",
+          properties: {
+            url: {
+              type: "string",
+              format: "uri",
+              example: "https://accounts.google.com/o/oauth2/v2/auth?...",
+            },
+            message: {
+              type: "string",
+              example:
+                "Visit this URL in your browser to authenticate with Google",
+            },
+          },
+        },
       }),
     ),
 
@@ -65,7 +80,4 @@ export const ApiAuthDocs = {
         },
       }),
     ),
-};
-const getBaseUrl = (): string => {
-  return process.env.BASE_URL || "http://localhost:3000";
 };
